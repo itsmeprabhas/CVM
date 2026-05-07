@@ -1,15 +1,10 @@
-```markdown
-# CVM++ : Stack-Based Virtual Machine & Custom Compiler
 
-![C++](https://img.shields.io/badge/C++-17-blue.svg)
-![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Linux-green.svg)
-![Architecture](https://img.shields.io/badge/Architecture-Stack--Based_VM-orange.svg)
+# CVM++ : Stack-Based Virtual Machine & Custom Compiler
 
 **CVM++** is a lightweight, custom scripting language built entirely from scratch in C++. This project demystifies the inner workings of compilers, interpreters, and runtime environments by breaking down the journey of raw text into executable bytecode.
 
 Instead of relying on existing languages, CVM++ implements its own Lexical Analyzer, Recursive Descent Parser, AST generator, Bytecode Compiler, and a custom Stack-based Virtual Machine.
 
----
 
 ##  Pipeline Architecture
 
