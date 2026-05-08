@@ -1,0 +1,11 @@
+let x=10;
+let sum=0;
+let fact=1;
+let j=1;
+let i=0;
+for (i=0;i<5;i++) {
+    sum=sum+x+i;
+    fact=fact*(i+1); 
+}
+print sum;
+print fact;

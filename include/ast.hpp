@@ -12,6 +12,7 @@ class NumberLiteral;
 class BooleanLiteral;
 class Identifier;
 class BinaryExpr;
+class UnaryExpr;
 class AssignExpr;
 class VarDecl;
 class PrintStmt;
@@ -30,6 +31,7 @@ public:
     virtual void visit(BooleanLiteral* node) = 0;
     virtual void visit(Identifier* node) = 0;
     virtual void visit(BinaryExpr* node) = 0;
+    virtual void visit(UnaryExpr* node) = 0;
     virtual void visit(AssignExpr* node) = 0;
     virtual void visit(VarDecl* node) = 0;
     virtual void visit(PrintStmt* node) = 0;
@@ -82,6 +84,17 @@ public:
     BinaryExpr(std::unique_ptr<ASTNode> l, const std::string& o, 
                std::unique_ptr<ASTNode> r)
         : left(std::move(l)), op(o), right(std::move(r)) {}
+    void accept(ASTVisitor* visitor) override { visitor->visit(this); }
+    std::string toString() const override;
+};
+
+class UnaryExpr : public ASTNode {
+public:
+    std::string op;
+    std::unique_ptr<ASTNode> operand;
+    
+    UnaryExpr(const std::string& o, std::unique_ptr<ASTNode> value)
+        : op(o), operand(std::move(value)) {}
     void accept(ASTVisitor* visitor) override { visitor->visit(this); }
     std::string toString() const override;
 };
@@ -187,6 +200,7 @@ public:
     void visit(BooleanLiteral* node) override;
     void visit(Identifier* node) override;
     void visit(BinaryExpr* node) override;
+    void visit(UnaryExpr* node) override;
     void visit(AssignExpr* node) override;
     void visit(VarDecl* node) override;
     void visit(PrintStmt* node) override;

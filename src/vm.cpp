@@ -168,10 +168,31 @@ VM::InterpretResult VM::run() {
                 break;
             }
             
+            case OpCode::MOD: {
+                int32_t b = pop();
+                int32_t a = pop();
+                if (b == 0) {
+                    runtimeError("Modulo by zero");
+                    return InterpretResult::RUNTIME_ERROR;
+                }
+                push(a % b);
+                ip++;
+                break;
+
+            }
+            
             case OpCode::EQ: {
                 int32_t b = pop();
                 int32_t a = pop();
                 push(a == b ? 1 : 0);
+                ip++;
+                break;
+            }
+
+            case OpCode::NEQ: {
+                int32_t b = pop();
+                int32_t a = pop();
+                push(a != b ? 1 : 0);
                 ip++;
                 break;
             }
@@ -180,6 +201,93 @@ VM::InterpretResult VM::run() {
                 int32_t b = pop();
                 int32_t a = pop();
                 push(a < b ? 1 : 0);
+                ip++;
+                break;
+            }
+
+            case OpCode::LE: {
+                int32_t b = pop();
+                int32_t a = pop();
+                push(a <= b ? 1 : 0);
+                ip++;
+                break;
+            }
+
+            case OpCode::GT: {
+                int32_t b = pop();
+                int32_t a = pop();
+                push(a > b ? 1 : 0);
+                ip++;
+                break;
+            }
+
+            case OpCode::GE: {
+                int32_t b = pop();
+                int32_t a = pop();
+                push(a >= b ? 1 : 0);
+                ip++;
+                break;
+            }
+
+            case OpCode::BIT_AND: {
+                int32_t b = pop();
+                int32_t a = pop();
+                push(a & b);
+                ip++;
+                break;
+            }
+
+            case OpCode::BIT_OR: {
+                int32_t b = pop();
+                int32_t a = pop();
+                push(a | b);
+                ip++;
+                break;
+            }
+
+            case OpCode::BIT_XOR: {
+                int32_t b = pop();
+                int32_t a = pop();
+                push(a ^ b);
+                ip++;
+                break;
+            }
+
+            case OpCode::SHL: {
+                int32_t b = pop();
+                int32_t a = pop();
+                push(a << b);
+                ip++;
+                break;
+            }
+
+            case OpCode::SHR: {
+                int32_t b = pop();
+                int32_t a = pop();
+                push(a >> b);
+                ip++;
+                break;
+            }
+
+            case OpCode::AND: {
+                int32_t b = pop();
+                int32_t a = pop();
+                push((a != 0 && b != 0) ? 1 : 0);
+                ip++;
+                break;
+            }
+
+            case OpCode::OR: {
+                int32_t b = pop();
+                int32_t a = pop();
+                push((a != 0 || b != 0) ? 1 : 0);
+                ip++;
+                break;
+            }
+
+            case OpCode::NOT: {
+                int32_t a = pop();
+                push(a == 0 ? 1 : 0);
                 ip++;
                 break;
             }

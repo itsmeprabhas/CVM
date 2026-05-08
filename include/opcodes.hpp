@@ -15,10 +15,27 @@ enum class OpCode : uint8_t {
     SUB,            
     MUL,            
     DIV,            
+    MOD,
     
     // Comparison Operations
     EQ,             
+    NEQ,
     LT,             
+    LE,
+    GT,
+    GE,
+    
+    // Bitwise Operations
+    BIT_AND,
+    BIT_OR,
+    BIT_XOR,
+    SHL,
+    SHR,
+    
+    // Logical/Unary Operations
+    AND,
+    OR,
+    NOT,
     
     // Variable Operations
     LOAD,           

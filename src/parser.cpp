@@ -81,6 +81,9 @@ std::unique_ptr<ASTNode> Parser::parseStatement() {
     if (match(TokenType::WHILE)) {
         return parseWhileStatement();
     }
+    if (match(TokenType::FOR)) {
+        return parseForStatement();
+    }
     if (match(TokenType::LBRACE)) {
         auto block = parseBlock();
         return std::move(block);
@@ -130,6 +133,57 @@ std::unique_ptr<ASTNode> Parser::parseWhileStatement() {
     return std::make_unique<WhileStmt>(std::move(condition), std::move(body));
 }
 
+std::unique_ptr<ASTNode> Parser::parseForStatement() {
+    consume(TokenType::LPAREN, "Expected '(' after 'for'");
+
+    std::unique_ptr<ASTNode> initializer = nullptr;
+    if (!check(TokenType::SEMICOLON)) {
+        if (match(TokenType::LET)) {
+            Token name = consume(TokenType::IDENTIFIER, "Expected variable name after 'let'");
+            consume(TokenType::ASSIGN, "Expected '=' after variable name");
+            std::unique_ptr<ASTNode> initValue = parseExpression();
+            initializer = std::make_unique<VarDecl>(name.lexeme, std::move(initValue));
+        } else {
+            initializer = parseExpression();
+        }
+    }
+    consume(TokenType::SEMICOLON, "Expected ';' after for initializer");
+
+    std::unique_ptr<ASTNode> condition;
+    if (!check(TokenType::SEMICOLON)) {
+        condition = parseExpression();
+    } else {
+        condition = std::make_unique<BooleanLiteral>(true);
+    }
+    consume(TokenType::SEMICOLON, "Expected ';' after for condition");
+
+    std::unique_ptr<ASTNode> increment = nullptr;
+    if (!check(TokenType::RPAREN)) {
+        increment = parseExpression();
+    }
+    consume(TokenType::RPAREN, "Expected ')' after for clauses");
+
+    consume(TokenType::LBRACE, "Expected '{' after for clauses");
+    std::unique_ptr<Block> body = parseBlock();
+
+    std::vector<std::unique_ptr<ASTNode>> whileBodyStatements;
+    whileBodyStatements = std::move(body->statements);
+    if (increment) {
+        whileBodyStatements.push_back(std::move(increment));
+    }
+    auto whileBody = std::make_unique<Block>(std::move(whileBodyStatements));
+    auto whileStmt = std::make_unique<WhileStmt>(std::move(condition), std::move(whileBody));
+
+    if (!initializer) {
+        return whileStmt;
+    }
+
+    std::vector<std::unique_ptr<ASTNode>> desugaredStatements;
+    desugaredStatements.push_back(std::move(initializer));
+    desugaredStatements.push_back(std::move(whileStmt));
+    return std::make_unique<Block>(std::move(desugaredStatements));
+}
+
 std::unique_ptr<ASTNode> Parser::parsePrintStatement() {
     std::unique_ptr<ASTNode> expr = parseExpression();
     consume(TokenType::SEMICOLON, "Expected ';' after print statement");
@@ -145,7 +199,7 @@ std::unique_ptr<ASTNode> Parser::parseInputStatement() {
 std::unique_ptr<ASTNode> Parser::parseExpressionStatement() {
     std::unique_ptr<ASTNode> expr = parseExpression();
     consume(TokenType::SEMICOLON, "Expected ';' after expression");
-    return std::move(expr);
+    return expr;
 }
 
 // Expression parsing with operator precedence
@@ -154,29 +208,114 @@ std::unique_ptr<ASTNode> Parser::parseExpression() {
 }
 
 std::unique_ptr<ASTNode> Parser::parseAssignment() {
-    std::unique_ptr<ASTNode> expr = parseEquality();
+    std::unique_ptr<ASTNode> expr = parseLogicalOr();
     
-    if (match(TokenType::ASSIGN)) {
-        Token equals = previous();
+    if (check(TokenType::ASSIGN) ||
+        check(TokenType::PLUS_ASSIGN) || check(TokenType::MINUS_ASSIGN) ||
+        check(TokenType::STAR_ASSIGN) || check(TokenType::SLASH_ASSIGN) ||
+        check(TokenType::MOD_ASSIGN) || check(TokenType::AND_ASSIGN) ||
+        check(TokenType::OR_ASSIGN) || check(TokenType::XOR_ASSIGN) ||
+        check(TokenType::SHL_ASSIGN) || check(TokenType::SHR_ASSIGN)) {
+        Token op = advance();
         std::unique_ptr<ASTNode> value = parseAssignment();
-        
-        // Check if left side is an identifier
+
         if (auto* ident = dynamic_cast<Identifier*>(expr.get())) {
             std::string name = ident->name;
-            return std::make_unique<AssignExpr>(name, std::move(value));
+            if (op.type == TokenType::ASSIGN) {
+                return std::make_unique<AssignExpr>(name, std::move(value));
+            }
+
+            std::string binaryOp;
+            if (op.type == TokenType::PLUS_ASSIGN) binaryOp = "+";
+            else if (op.type == TokenType::MINUS_ASSIGN) binaryOp = "-";
+            else if (op.type == TokenType::STAR_ASSIGN) binaryOp = "*";
+            else if (op.type == TokenType::SLASH_ASSIGN) binaryOp = "/";
+            else if (op.type == TokenType::MOD_ASSIGN) binaryOp = "%";
+            else if (op.type == TokenType::AND_ASSIGN) binaryOp = "&";
+            else if (op.type == TokenType::OR_ASSIGN) binaryOp = "|";
+            else if (op.type == TokenType::XOR_ASSIGN) binaryOp = "^";
+            else if (op.type == TokenType::SHL_ASSIGN) binaryOp = "<<";
+            else if (op.type == TokenType::SHR_ASSIGN) binaryOp = ">>";
+
+            auto combined = std::make_unique<BinaryExpr>(
+                std::make_unique<Identifier>(name),
+                binaryOp,
+                std::move(value)
+            );
+            return std::make_unique<AssignExpr>(name, std::move(combined));
         }
         
-        throw ParseError("Invalid assignment target", equals.line, equals.column);
+        throw ParseError("Invalid assignment target", op.line, op.column);
     }
     
     return expr;
 }
 
+std::unique_ptr<ASTNode> Parser::parseLogicalOr() {
+    std::unique_ptr<ASTNode> left = parseLogicalAnd();
+
+    while (match(TokenType::OR)) {
+        Token op = previous();
+        std::unique_ptr<ASTNode> right = parseLogicalAnd();
+        left = std::make_unique<BinaryExpr>(std::move(left), op.lexeme, std::move(right));
+    }
+
+    return left;
+}
+
+std::unique_ptr<ASTNode> Parser::parseLogicalAnd() {
+    std::unique_ptr<ASTNode> left = parseBitwiseOr();
+
+    while (match(TokenType::AND)) {
+        Token op = previous();
+        std::unique_ptr<ASTNode> right = parseBitwiseOr();
+        left = std::make_unique<BinaryExpr>(std::move(left), op.lexeme, std::move(right));
+    }
+
+    return left;
+}
+
+std::unique_ptr<ASTNode> Parser::parseBitwiseOr() {
+    std::unique_ptr<ASTNode> left = parseBitwiseXor();
+
+    while (match(TokenType::BIT_OR)) {
+        Token op = previous();
+        std::unique_ptr<ASTNode> right = parseBitwiseXor();
+        left = std::make_unique<BinaryExpr>(std::move(left), op.lexeme, std::move(right));
+    }
+
+    return left;
+}
+
+std::unique_ptr<ASTNode> Parser::parseBitwiseXor() {
+    std::unique_ptr<ASTNode> left = parseBitwiseAnd();
+
+    while (match(TokenType::BIT_XOR)) {
+        Token op = previous();
+        std::unique_ptr<ASTNode> right = parseBitwiseAnd();
+        left = std::make_unique<BinaryExpr>(std::move(left), op.lexeme, std::move(right));
+    }
+
+    return left;
+}
+
+std::unique_ptr<ASTNode> Parser::parseBitwiseAnd() {
+    std::unique_ptr<ASTNode> left = parseEquality();
+
+    while (match(TokenType::BIT_AND)) {
+        Token op = previous();
+        std::unique_ptr<ASTNode> right = parseEquality();
+        left = std::make_unique<BinaryExpr>(std::move(left), op.lexeme, std::move(right));
+    }
+
+    return left;
+}
+
 std::unique_ptr<ASTNode> Parser::parseEquality() {
     std::unique_ptr<ASTNode> left = parseComparison();
     
-    while (match(TokenType::EQ)) {
-        Token op = previous();
+    while (check(TokenType::EQ) || check(TokenType::NEQ)) {
+        Token op = advance();
         std::unique_ptr<ASTNode> right = parseComparison();
         left = std::make_unique<BinaryExpr>(std::move(left), op.lexeme, std::move(right));
     }
@@ -185,10 +324,23 @@ std::unique_ptr<ASTNode> Parser::parseEquality() {
 }
 
 std::unique_ptr<ASTNode> Parser::parseComparison() {
-    std::unique_ptr<ASTNode> left = parseTerm();
+    std::unique_ptr<ASTNode> left = parseShift();
     
-    while (match(TokenType::LT)) {
-        Token op = previous();
+    while (check(TokenType::LT) || check(TokenType::LE) ||
+           check(TokenType::GT) || check(TokenType::GE)) {
+        Token op = advance();
+        std::unique_ptr<ASTNode> right = parseShift();
+        left = std::make_unique<BinaryExpr>(std::move(left), op.lexeme, std::move(right));
+    }
+    
+    return left;
+}
+
+std::unique_ptr<ASTNode> Parser::parseShift() {
+    std::unique_ptr<ASTNode> left = parseTerm();
+
+    while (check(TokenType::SHL) || check(TokenType::SHR)) {
+        Token op = advance();
         std::unique_ptr<ASTNode> right = parseTerm();
         left = std::make_unique<BinaryExpr>(std::move(left), op.lexeme, std::move(right));
     }
@@ -211,7 +363,7 @@ std::unique_ptr<ASTNode> Parser::parseTerm() {
 std::unique_ptr<ASTNode> Parser::parseFactor() {
     std::unique_ptr<ASTNode> left = parseUnary();
     
-    while (check(TokenType::STAR) || check(TokenType::SLASH)) {
+    while (check(TokenType::STAR) || check(TokenType::SLASH) || check(TokenType::MODULO)) {
         Token op = advance();
         std::unique_ptr<ASTNode> right = parseUnary();
         left = std::make_unique<BinaryExpr>(std::move(left), op.lexeme, std::move(right));
@@ -221,8 +373,54 @@ std::unique_ptr<ASTNode> Parser::parseFactor() {
 }
 
 std::unique_ptr<ASTNode> Parser::parseUnary() {
-    // For now, no unary operators - can add negation later
-    return parsePrimary();
+    if (check(TokenType::NOT) || check(TokenType::MINUS) || check(TokenType::BIT_NOT)) {
+        Token op = advance();
+        std::unique_ptr<ASTNode> operand = parseUnary();
+        return std::make_unique<UnaryExpr>(op.lexeme, std::move(operand));
+    }
+
+    if (check(TokenType::INC) || check(TokenType::DEC)) {
+        Token op = advance();
+        std::unique_ptr<ASTNode> target = parseUnary();
+        auto* ident = dynamic_cast<Identifier*>(target.get());
+        if (!ident) {
+            throw ParseError("Increment/decrement target must be an identifier", op.line, op.column);
+        }
+        std::string name = ident->name;
+        std::unique_ptr<ASTNode> one = std::make_unique<NumberLiteral>(1);
+        std::string binaryOp = (op.type == TokenType::INC) ? "+" : "-";
+        std::unique_ptr<ASTNode> rhs = std::make_unique<BinaryExpr>(
+            std::make_unique<Identifier>(name),
+            binaryOp,
+            std::move(one)
+        );
+        return std::make_unique<AssignExpr>(name, std::move(rhs));
+    }
+
+    return parsePostfix();
+}
+
+std::unique_ptr<ASTNode> Parser::parsePostfix() {
+    std::unique_ptr<ASTNode> expr = parsePrimary();
+
+    if (check(TokenType::INC) || check(TokenType::DEC)) {
+        Token op = advance();
+        auto* ident = dynamic_cast<Identifier*>(expr.get());
+        if (!ident) {
+            throw ParseError("Increment/decrement target must be an identifier", op.line, op.column);
+        }
+        std::string name = ident->name;
+        std::unique_ptr<ASTNode> one = std::make_unique<NumberLiteral>(1);
+        std::string binaryOp = (op.type == TokenType::INC) ? "+" : "-";
+        std::unique_ptr<ASTNode> rhs = std::make_unique<BinaryExpr>(
+            std::make_unique<Identifier>(name),
+            binaryOp,
+            std::move(one)
+        );
+        return std::make_unique<AssignExpr>(name, std::move(rhs));
+    }
+
+    return expr;
 }
 
 std::unique_ptr<ASTNode> Parser::parsePrimary() {

@@ -18,15 +18,42 @@ enum class TokenType {
   IF,    // if keyword
   ELSE,  // else keyword
   WHILE, // while keyword
+  FOR,   // for keyword
+  AND,   // and keyword
+  OR,    // or keyword
+  NOT,   // not keyword
 
   // Operators
-  PLUS,   // +
-  MINUS,  // -
-  STAR,   // *
-  SLASH,  // /
-  EQ,     // ==
-  LT,     // <
-  ASSIGN, // =
+  PLUS,       // +
+  MINUS,      // -
+  STAR,       // *
+  SLASH,      // /
+  MODULO,     // %
+  EQ,         // ==
+  NEQ,        // !=
+  LE,         // <=
+  LT,         // <
+  GE,         // >=
+  GT,         // >
+  SHL,        // <<
+  SHR,        // >>
+  BIT_AND,    // &
+  BIT_OR,     // |
+  BIT_XOR,    // ^
+  BIT_NOT,    // ~
+  INC,        // ++
+  DEC,        // --
+  PLUS_ASSIGN,   // +=
+  MINUS_ASSIGN,  // -=
+  STAR_ASSIGN,   // *=
+  SLASH_ASSIGN,  // /=
+  MOD_ASSIGN,    // %=
+  AND_ASSIGN,    // &=
+  OR_ASSIGN,     // |=
+  XOR_ASSIGN,    // ^=
+  SHL_ASSIGN,    // <<=
+  SHR_ASSIGN,    // >>=
+  ASSIGN,     // =
 
   // Delimiters
   LPAREN,    // (

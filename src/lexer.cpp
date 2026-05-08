@@ -45,9 +45,48 @@ bool Lexer::isAlphaNumeric(char c) {
 }
 
 void Lexer::skipWhitespace() {
-    while (!isAtEnd() && std::isspace(current())) {
+    while (!isAtEnd()) {
+        if (std::isspace(current())) {
+            advance();
+            continue;
+        }
+
+        if (current() == '/' && peek() == '/') {
+            skipLineComment();
+            continue;
+        }
+
+        if (current() == '/' && peek() == '*') {
+            skipBlockComment();
+            continue;
+        }
+
+        break;
+    }
+}
+
+void Lexer::skipLineComment() {
+    while (!isAtEnd() && current() != '\n') {
         advance();
     }
+}
+
+void Lexer::skipBlockComment() {
+    // Consume opening "/*"
+    advance();
+    advance();
+
+    while (!isAtEnd()) {
+        if (current() == '*' && peek() == '/') {
+            // Consume closing "*/"
+            advance();
+            advance();
+            return;
+        }
+        advance();
+    }
+
+    throw LexError("Unterminated block comment", line, column);
 }
 
 Token Lexer::makeToken(TokenType type) {
@@ -84,6 +123,10 @@ Token Lexer::scanIdentifierOrKeyword() {
     else if (text == "if")      type = TokenType::IF;
     else if (text == "else")    type = TokenType::ELSE;
     else if (text == "while")   type = TokenType::WHILE;
+    else if (text == "for")     type = TokenType::FOR;
+    else if (text == "and")     type = TokenType::AND;
+    else if (text == "or")      type = TokenType::OR;
+    else if (text == "not")     type = TokenType::NOT;
     else if (text == "true" || text == "false") type = TokenType::BOOLEAN;
     
     return Token(type, text, line, startCol);
@@ -101,15 +144,57 @@ Token Lexer::scanToken() {
     
     // Single character tokens
     switch (c) {
-        case '+': advance(); return Token(TokenType::PLUS, "+", line, startCol);
-        case '-': advance(); return Token(TokenType::MINUS, "-", line, startCol);
-        case '*': advance(); return Token(TokenType::STAR, "*", line, startCol);
-        case '/': advance(); return Token(TokenType::SLASH, "/", line, startCol);
+        case '+':
+            if (peek() == '+') {
+                advance(); advance();
+                return Token(TokenType::INC, "++", line, startCol);
+            }
+            if (peek() == '=') {
+                advance(); advance();
+                return Token(TokenType::PLUS_ASSIGN, "+=", line, startCol);
+            }
+            advance(); return Token(TokenType::PLUS, "+", line, startCol);
+        case '-':
+            if (peek() == '-') {
+                advance(); advance();
+                return Token(TokenType::DEC, "--", line, startCol);
+            }
+            if (peek() == '=') {
+                advance(); advance();
+                return Token(TokenType::MINUS_ASSIGN, "-=", line, startCol);
+            }
+            advance(); return Token(TokenType::MINUS, "-", line, startCol);
+        case '*':
+            if (peek() == '=') {
+                advance(); advance();
+                return Token(TokenType::STAR_ASSIGN, "*=", line, startCol);
+            }
+            advance(); return Token(TokenType::STAR, "*", line, startCol);
+        case '/':
+            if (peek() == '=') {
+                advance(); advance();
+                return Token(TokenType::SLASH_ASSIGN, "/=", line, startCol);
+            }
+            advance(); return Token(TokenType::SLASH, "/", line, startCol);
+        case '%':
+            if (peek() == '=') {
+                advance(); advance();
+                return Token(TokenType::MOD_ASSIGN, "%=", line, startCol);
+            }
+            advance(); return Token(TokenType::MODULO, "%", line, startCol);
         case '(': advance(); return Token(TokenType::LPAREN, "(", line, startCol);
         case ')': advance(); return Token(TokenType::RPAREN, ")", line, startCol);
         case '{': advance(); return Token(TokenType::LBRACE, "{", line, startCol);
         case '}': advance(); return Token(TokenType::RBRACE, "}", line, startCol);
         case ';': advance(); return Token(TokenType::SEMICOLON, ";", line, startCol);
+        case '^':
+            if (peek() == '=') {
+                advance(); advance();
+                return Token(TokenType::XOR_ASSIGN, "^=", line, startCol);
+            }
+            advance(); return Token(TokenType::BIT_XOR, "^", line, startCol);
+        case '~':
+            advance(); return Token(TokenType::BIT_NOT, "~", line, startCol);
     }
     
     // Two character tokens
@@ -121,9 +206,69 @@ Token Lexer::scanToken() {
         advance();
         return Token(TokenType::ASSIGN, "=", line, startCol);
     }
+    if (c == '!' && peek() == '=') {
+        advance(); advance();
+        return Token(TokenType::NEQ, "!=", line, startCol);
+    }
+    if (c == '!') {
+        advance();
+        return Token(TokenType::NOT, "!", line, startCol);
+    }
+    if (c == '<' && peek() == '=') {
+        advance(); advance();
+        return Token(TokenType::LE, "<=", line, startCol);
+    }
+    if (c == '<' && peek() == '<' && (pos + 2 < source.size()) && source[pos + 2] == '=') {
+        advance(); advance(); advance();
+        return Token(TokenType::SHL_ASSIGN, "<<=", line, startCol);
+    }
+    if (c == '<' && peek() == '<') {
+        advance(); advance();
+        return Token(TokenType::SHL, "<<", line, startCol);
+    }
     if (c == '<') {
         advance();
         return Token(TokenType::LT, "<", line, startCol);
+    }
+    if (c == '>' && peek() == '=') {
+        advance(); advance();
+        return Token(TokenType::GE, ">=", line, startCol);
+    }
+    if (c == '>' && peek() == '>' && (pos + 2 < source.size()) && source[pos + 2] == '=') {
+        advance(); advance(); advance();
+        return Token(TokenType::SHR_ASSIGN, ">>=", line, startCol);
+    }
+    if (c == '>' && peek() == '>') {
+        advance(); advance();
+        return Token(TokenType::SHR, ">>", line, startCol);
+    }
+    if (c == '>') {
+        advance();
+        return Token(TokenType::GT, ">", line, startCol);
+    }
+    if (c == '&') {
+        if (peek() == '&') {
+            advance(); advance();
+            return Token(TokenType::AND, "&&", line, startCol);
+        }
+        if (peek() == '=') {
+            advance(); advance();
+            return Token(TokenType::AND_ASSIGN, "&=", line, startCol);
+        }
+        advance();
+        return Token(TokenType::BIT_AND, "&", line, startCol);
+    }
+    if (c == '|') {
+        if (peek() == '|') {
+            advance(); advance();
+            return Token(TokenType::OR, "||", line, startCol);
+        }
+        if (peek() == '=') {
+            advance(); advance();
+            return Token(TokenType::OR_ASSIGN, "|=", line, startCol);
+        }
+        advance();
+        return Token(TokenType::BIT_OR, "|", line, startCol);
     }
     
     // Numbers

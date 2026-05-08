@@ -27,16 +27,24 @@ private:
     std::unique_ptr<Block> parseBlock();
     std::unique_ptr<ASTNode> parseIfStatement();
     std::unique_ptr<ASTNode> parseWhileStatement();
+    std::unique_ptr<ASTNode> parseForStatement();
     std::unique_ptr<ASTNode> parsePrintStatement();
     std::unique_ptr<ASTNode> parseInputStatement();
     std::unique_ptr<ASTNode> parseExpressionStatement();
     std::unique_ptr<ASTNode> parseExpression();
     std::unique_ptr<ASTNode> parseAssignment();
+    std::unique_ptr<ASTNode> parseLogicalOr();
+    std::unique_ptr<ASTNode> parseLogicalAnd();
+    std::unique_ptr<ASTNode> parseBitwiseOr();
+    std::unique_ptr<ASTNode> parseBitwiseXor();
+    std::unique_ptr<ASTNode> parseBitwiseAnd();
     std::unique_ptr<ASTNode> parseEquality();
     std::unique_ptr<ASTNode> parseComparison();
+    std::unique_ptr<ASTNode> parseShift();
     std::unique_ptr<ASTNode> parseTerm();
     std::unique_ptr<ASTNode> parseFactor();
     std::unique_ptr<ASTNode> parseUnary();
+    std::unique_ptr<ASTNode> parsePostfix();
     std::unique_ptr<ASTNode> parsePrimary();
     
 public:

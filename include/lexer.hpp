@@ -16,6 +16,8 @@ private:
     char peek();
     char advance();
     void skipWhitespace();
+    void skipLineComment();
+    void skipBlockComment();
     bool isAtEnd();
     bool isDigit(char c);
     bool isAlpha(char c);

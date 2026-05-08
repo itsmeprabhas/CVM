@@ -28,6 +28,7 @@ private:
     void visit(BooleanLiteral* node) override;
     void visit(Identifier* node) override;
     void visit(BinaryExpr* node) override;
+    void visit(UnaryExpr* node) override;
     void visit(AssignExpr* node) override;
     void visit(VarDecl* node) override;
     void visit(PrintStmt* node) override;

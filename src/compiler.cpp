@@ -67,8 +67,35 @@ void Compiler::visit(BinaryExpr* node) {
     else if (node->op == "-") emit(OpCode::SUB);
     else if (node->op == "*") emit(OpCode::MUL);
     else if (node->op == "/") emit(OpCode::DIV);
+    else if (node->op == "%") emit(OpCode::MOD);
     else if (node->op == "==") emit(OpCode::EQ);
+    else if (node->op == "!=") emit(OpCode::NEQ);
     else if (node->op == "<")  emit(OpCode::LT);
+    else if (node->op == "<=") emit(OpCode::LE);
+    else if (node->op == ">")  emit(OpCode::GT);
+    else if (node->op == ">=") emit(OpCode::GE);
+    else if (node->op == "&")  emit(OpCode::BIT_AND);
+    else if (node->op == "|")  emit(OpCode::BIT_OR);
+    else if (node->op == "^")  emit(OpCode::BIT_XOR);
+    else if (node->op == "<<") emit(OpCode::SHL);
+    else if (node->op == ">>") emit(OpCode::SHR);
+    else if (node->op == "and" || node->op == "&&") emit(OpCode::AND);
+    else if (node->op == "or" || node->op == "||") emit(OpCode::OR);
+}
+
+void Compiler::visit(UnaryExpr* node) {
+    node->operand->accept(this);
+    if (node->op == "!" || node->op == "not") {
+        emit(OpCode::NOT);
+    } else if (node->op == "~") {
+        int32_t constIndex = addConstant(-1);
+        emit(OpCode::PUSH, constIndex);
+        emit(OpCode::BIT_XOR);
+    } else if (node->op == "-") {
+        int32_t constIndex = addConstant(-1);
+        emit(OpCode::PUSH, constIndex);
+        emit(OpCode::MUL);
+    }
 }
 
 void Compiler::visit(AssignExpr* node) {

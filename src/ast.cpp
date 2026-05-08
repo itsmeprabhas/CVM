@@ -18,6 +18,10 @@ std::string BinaryExpr::toString() const {
     return "(" + left->toString() + " " + op + " " + right->toString() + ")";
 }
 
+std::string UnaryExpr::toString() const {
+    return "(" + op + " " + operand->toString() + ")";
+}
+
 std::string AssignExpr::toString() const {
     return name + " = " + value->toString();
 }
@@ -97,6 +101,14 @@ void ASTPrinter::visit(BinaryExpr* node) {
     indent++;
     node->right->accept(this);
     indent--;
+    indent--;
+}
+
+void ASTPrinter::visit(UnaryExpr* node) {
+    printIndent();
+    output += "UnaryExpr: '" + node->op + "'\n";
+    indent++;
+    node->operand->accept(this);
     indent--;
 }
 
