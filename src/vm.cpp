@@ -131,6 +131,13 @@ VM::InterpretResult VM::run() {
                 ip++;
                 break;
             }
+
+            case OpCode::DUP: {
+                int32_t value = peek();
+                push(value);
+                ip++;
+                break;
+            }
             
             case OpCode::ADD: {
                 int32_t b = pop();

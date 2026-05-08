@@ -13,12 +13,15 @@ class BooleanLiteral;
 class Identifier;
 class BinaryExpr;
 class UnaryExpr;
+class IncDecExpr;
 class AssignExpr;
 class VarDecl;
 class PrintStmt;
 class InputStmt;
 class IfStmt;
 class WhileStmt;
+class BreakStmt;
+class ContinueStmt;
 class Block;
 class Program;
 
@@ -32,12 +35,15 @@ public:
     virtual void visit(Identifier* node) = 0;
     virtual void visit(BinaryExpr* node) = 0;
     virtual void visit(UnaryExpr* node) = 0;
+    virtual void visit(IncDecExpr* node) = 0;
     virtual void visit(AssignExpr* node) = 0;
     virtual void visit(VarDecl* node) = 0;
     virtual void visit(PrintStmt* node) = 0;
     virtual void visit(InputStmt* node) = 0;
     virtual void visit(IfStmt* node) = 0;
     virtual void visit(WhileStmt* node) = 0;
+    virtual void visit(BreakStmt* node) = 0;
+    virtual void visit(ContinueStmt* node) = 0;
     virtual void visit(Block* node) = 0;
     virtual void visit(Program* node) = 0;
 };
@@ -95,6 +101,18 @@ public:
     
     UnaryExpr(const std::string& o, std::unique_ptr<ASTNode> value)
         : op(o), operand(std::move(value)) {}
+    void accept(ASTVisitor* visitor) override { visitor->visit(this); }
+    std::string toString() const override;
+};
+
+class IncDecExpr : public ASTNode {
+public:
+    std::string name;
+    bool isIncrement;
+    bool isPrefix;
+    
+    IncDecExpr(const std::string& n, bool increment, bool prefix)
+        : name(n), isIncrement(increment), isPrefix(prefix) {}
     void accept(ASTVisitor* visitor) override { visitor->visit(this); }
     std::string toString() const override;
 };
@@ -166,6 +184,18 @@ public:
     std::string toString() const override;
 };
 
+class BreakStmt : public ASTNode {
+public:
+    void accept(ASTVisitor* visitor) override { visitor->visit(this); }
+    std::string toString() const override;
+};
+
+class ContinueStmt : public ASTNode {
+public:
+    void accept(ASTVisitor* visitor) override { visitor->visit(this); }
+    std::string toString() const override;
+};
+
 class Block : public ASTNode {
 public:
     std::vector<std::unique_ptr<ASTNode>> statements;
@@ -201,12 +231,15 @@ public:
     void visit(Identifier* node) override;
     void visit(BinaryExpr* node) override;
     void visit(UnaryExpr* node) override;
+    void visit(IncDecExpr* node) override;
     void visit(AssignExpr* node) override;
     void visit(VarDecl* node) override;
     void visit(PrintStmt* node) override;
     void visit(InputStmt* node) override;
     void visit(IfStmt* node) override;
     void visit(WhileStmt* node) override;
+    void visit(BreakStmt* node) override;
+    void visit(ContinueStmt* node) override;
     void visit(Block* node) override;
     void visit(Program* node) override;
     

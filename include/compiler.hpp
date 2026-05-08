@@ -8,12 +8,19 @@
 #include <cstdint>
 #include <string>
 
+struct LoopContext {
+    size_t continueTarget;
+    std::vector<size_t> breakJumps;
+    std::vector<size_t> continueJumps;
+};
+
 class Compiler : public ASTVisitor {
 private:
     std::vector<Instruction> instructions;
     std::vector<int32_t> constants;
     std::unordered_map<std::string, int32_t> variables;
     int32_t varCount;
+    std::vector<LoopContext> loopStack;
     
     // Helper methods
     int32_t addConstant(int32_t value);
@@ -29,12 +36,15 @@ private:
     void visit(Identifier* node) override;
     void visit(BinaryExpr* node) override;
     void visit(UnaryExpr* node) override;
+    void visit(IncDecExpr* node) override;
     void visit(AssignExpr* node) override;
     void visit(VarDecl* node) override;
     void visit(PrintStmt* node) override;
     void visit(InputStmt* node) override;
     void visit(IfStmt* node) override;
     void visit(WhileStmt* node) override;
+    void visit(BreakStmt* node) override;
+    void visit(ContinueStmt* node) override;
     void visit(Block* node) override;
     void visit(Program* node) override;
     

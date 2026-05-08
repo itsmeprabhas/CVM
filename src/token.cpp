@@ -13,6 +13,10 @@ std::string tokenTypeToString(TokenType type) {
         case TokenType::ELSE:        return "ELSE";
         case TokenType::WHILE:       return "WHILE";
         case TokenType::FOR:         return "FOR";
+        case TokenType::CASE:        return "CASE";
+        case TokenType::WHEN:        return "WHEN";
+        case TokenType::BREAK:       return "BREAK";
+        case TokenType::CONTINUE:    return "CONTINUE";
         case TokenType::AND:         return "AND";
         case TokenType::OR:          return "OR";
         case TokenType::NOT:         return "NOT";

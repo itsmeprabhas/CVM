@@ -9,6 +9,7 @@ enum class OpCode : uint8_t {
     // Stack Operations
     PUSH,           
     POP,            
+    DUP,
     
     // Arithmetic Operations
     ADD,            

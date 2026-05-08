@@ -60,6 +60,56 @@ void Compiler::visit(Identifier* node) {
 }
 
 void Compiler::visit(BinaryExpr* node) {
+    if (node->op == "and" || node->op == "&&") {
+        node->left->accept(this);
+        size_t leftFalseJump = currentOffset();
+        emit(OpCode::JUMP_IF_FALSE, 0);
+
+        node->right->accept(this);
+        size_t rightFalseJump = currentOffset();
+        emit(OpCode::JUMP_IF_FALSE, 0);
+
+        int32_t trueConst = addConstant(1);
+        emit(OpCode::PUSH, trueConst);
+        size_t endJump = currentOffset();
+        emit(OpCode::JUMP, 0);
+
+        size_t falseLabel = currentOffset();
+        int32_t falseConst = addConstant(0);
+        emit(OpCode::PUSH, falseConst);
+        size_t endLabel = currentOffset();
+
+        patchJump(leftFalseJump, static_cast<int32_t>(falseLabel));
+        patchJump(rightFalseJump, static_cast<int32_t>(falseLabel));
+        patchJump(endJump, static_cast<int32_t>(endLabel));
+        return;
+    }
+
+    if (node->op == "or" || node->op == "||") {
+        node->left->accept(this);
+        size_t leftTrueJump = currentOffset();
+        emit(OpCode::JUMP_IF_TRUE, 0);
+
+        node->right->accept(this);
+        size_t rightTrueJump = currentOffset();
+        emit(OpCode::JUMP_IF_TRUE, 0);
+
+        int32_t falseConst = addConstant(0);
+        emit(OpCode::PUSH, falseConst);
+        size_t endJump = currentOffset();
+        emit(OpCode::JUMP, 0);
+
+        size_t trueLabel = currentOffset();
+        int32_t trueConst = addConstant(1);
+        emit(OpCode::PUSH, trueConst);
+        size_t endLabel = currentOffset();
+
+        patchJump(leftTrueJump, static_cast<int32_t>(trueLabel));
+        patchJump(rightTrueJump, static_cast<int32_t>(trueLabel));
+        patchJump(endJump, static_cast<int32_t>(endLabel));
+        return;
+    }
+
     node->left->accept(this);
     node->right->accept(this);
     
@@ -96,6 +146,27 @@ void Compiler::visit(UnaryExpr* node) {
         emit(OpCode::PUSH, constIndex);
         emit(OpCode::MUL);
     }
+}
+
+void Compiler::visit(IncDecExpr* node) {
+    int32_t varIndex = getVariableIndex(node->name);
+    int32_t oneConst = addConstant(1);
+
+    if (node->isPrefix) {
+        emit(OpCode::LOAD, varIndex);
+        emit(OpCode::PUSH, oneConst);
+        emit(node->isIncrement ? OpCode::ADD : OpCode::SUB);
+        emit(OpCode::STORE, varIndex);
+        emit(OpCode::LOAD, varIndex);
+        return;
+    }
+
+    // Postfix: return old value, then update variable.
+    emit(OpCode::LOAD, varIndex);
+    emit(OpCode::DUP);
+    emit(OpCode::PUSH, oneConst);
+    emit(node->isIncrement ? OpCode::ADD : OpCode::SUB);
+    emit(OpCode::STORE, varIndex);
 }
 
 void Compiler::visit(AssignExpr* node) {
@@ -149,6 +220,7 @@ void Compiler::visit(IfStmt* node) {
 void Compiler::visit(WhileStmt* node) {
     // Remember the start of the loop
     size_t loopStart = currentOffset();
+    loopStack.push_back(LoopContext{loopStart, {}, {}});
     
     node->condition->accept(this);
     
@@ -162,7 +234,37 @@ void Compiler::visit(WhileStmt* node) {
     emit(OpCode::JUMP, static_cast<int32_t>(loopStart));
     
     // Patch the JUMP_IF_FALSE to jump here
-    patchJump(jumpOut, static_cast<int32_t>(currentOffset()));
+    size_t loopEnd = currentOffset();
+    patchJump(jumpOut, static_cast<int32_t>(loopEnd));
+
+    // Patch deferred break/continue jumps.
+    for (size_t offset : loopStack.back().breakJumps) {
+        patchJump(offset, static_cast<int32_t>(loopEnd));
+    }
+    for (size_t offset : loopStack.back().continueJumps) {
+        patchJump(offset, static_cast<int32_t>(loopStack.back().continueTarget));
+    }
+    loopStack.pop_back();
+}
+
+void Compiler::visit(BreakStmt* /*node*/) {
+    if (loopStack.empty()) {
+        std::cerr << "Compiler Error: 'break' used outside loop\n";
+        return;
+    }
+    size_t jump = currentOffset();
+    emit(OpCode::JUMP, 0);
+    loopStack.back().breakJumps.push_back(jump);
+}
+
+void Compiler::visit(ContinueStmt* /*node*/) {
+    if (loopStack.empty()) {
+        std::cerr << "Compiler Error: 'continue' used outside loop\n";
+        return;
+    }
+    size_t jump = currentOffset();
+    emit(OpCode::JUMP, 0);
+    loopStack.back().continueJumps.push_back(jump);
 }
 
 void Compiler::visit(Block* node) {

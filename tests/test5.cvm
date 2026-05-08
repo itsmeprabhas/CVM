@@ -1,0 +1,16 @@
+let score = 72;
+
+case {
+    when (score >= 90) {
+        print 1;
+    }
+    when (score >= 75) {
+        print 2;
+    }
+    when (score >= 60) {
+        print 3;
+    }
+    else {
+        print 4;
+    }
+}

@@ -124,6 +124,10 @@ Token Lexer::scanIdentifierOrKeyword() {
     else if (text == "else")    type = TokenType::ELSE;
     else if (text == "while")   type = TokenType::WHILE;
     else if (text == "for")     type = TokenType::FOR;
+    else if (text == "case")    type = TokenType::CASE;
+    else if (text == "when")    type = TokenType::WHEN;
+    else if (text == "break")   type = TokenType::BREAK;
+    else if (text == "continue") type = TokenType::CONTINUE;
     else if (text == "and")     type = TokenType::AND;
     else if (text == "or")      type = TokenType::OR;
     else if (text == "not")     type = TokenType::NOT;

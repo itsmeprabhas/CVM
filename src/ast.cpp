@@ -22,6 +22,11 @@ std::string UnaryExpr::toString() const {
     return "(" + op + " " + operand->toString() + ")";
 }
 
+std::string IncDecExpr::toString() const {
+    std::string op = isIncrement ? "++" : "--";
+    return isPrefix ? (op + name) : (name + op);
+}
+
 std::string AssignExpr::toString() const {
     return name + " = " + value->toString();
 }
@@ -48,6 +53,14 @@ std::string IfStmt::toString() const {
 
 std::string WhileStmt::toString() const {
     return "while (" + condition->toString() + ") " + body->toString();
+}
+
+std::string BreakStmt::toString() const {
+    return "break";
+}
+
+std::string ContinueStmt::toString() const {
+    return "continue";
 }
 
 std::string Block::toString() const {
@@ -110,6 +123,13 @@ void ASTPrinter::visit(UnaryExpr* node) {
     indent++;
     node->operand->accept(this);
     indent--;
+}
+
+void ASTPrinter::visit(IncDecExpr* node) {
+    printIndent();
+    output += "IncDecExpr: '" + node->name + "' op=";
+    output += node->isIncrement ? "++" : "--";
+    output += node->isPrefix ? " prefix\n" : " postfix\n";
 }
 
 void ASTPrinter::visit(AssignExpr* node) {
@@ -175,6 +195,16 @@ void ASTPrinter::visit(WhileStmt* node) {
     node->body->accept(this);
     indent--;
     indent--;
+}
+
+void ASTPrinter::visit(BreakStmt* /*node*/) {
+    printIndent();
+    output += "BreakStmt\n";
+}
+
+void ASTPrinter::visit(ContinueStmt* /*node*/) {
+    printIndent();
+    output += "ContinueStmt\n";
 }
 
 void ASTPrinter::visit(Block* node) {

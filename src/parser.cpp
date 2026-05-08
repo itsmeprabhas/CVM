@@ -84,6 +84,15 @@ std::unique_ptr<ASTNode> Parser::parseStatement() {
     if (match(TokenType::FOR)) {
         return parseForStatement();
     }
+    if (match(TokenType::CASE)) {
+        return parseCaseStatement();
+    }
+    if (match(TokenType::BREAK)) {
+        return parseBreakStatement();
+    }
+    if (match(TokenType::CONTINUE)) {
+        return parseContinueStatement();
+    }
     if (match(TokenType::LBRACE)) {
         auto block = parseBlock();
         return std::move(block);
@@ -182,6 +191,57 @@ std::unique_ptr<ASTNode> Parser::parseForStatement() {
     desugaredStatements.push_back(std::move(initializer));
     desugaredStatements.push_back(std::move(whileStmt));
     return std::make_unique<Block>(std::move(desugaredStatements));
+}
+
+std::unique_ptr<ASTNode> Parser::parseCaseStatement() {
+    consume(TokenType::LBRACE, "Expected '{' after 'case'");
+
+    std::vector<std::pair<std::unique_ptr<ASTNode>, std::unique_ptr<Block>>> clauses;
+    while (match(TokenType::WHEN)) {
+        consume(TokenType::LPAREN, "Expected '(' after 'when'");
+        std::unique_ptr<ASTNode> condition = parseExpression();
+        consume(TokenType::RPAREN, "Expected ')' after when condition");
+        consume(TokenType::LBRACE, "Expected '{' after when condition");
+        std::unique_ptr<Block> body = parseBlock();
+        clauses.push_back(std::make_pair(std::move(condition), std::move(body)));
+    }
+
+    std::unique_ptr<Block> elseBranch = nullptr;
+    if (match(TokenType::ELSE)) {
+        consume(TokenType::LBRACE, "Expected '{' after 'else' in case");
+        elseBranch = parseBlock();
+    }
+
+    consume(TokenType::RBRACE, "Expected '}' after case statement");
+
+    if (clauses.empty()) {
+        throw ParseError("Expected at least one 'when' clause in case statement", previous().line, previous().column);
+    }
+
+    std::unique_ptr<Block> currentElse = std::move(elseBranch);
+    for (int i = static_cast<int>(clauses.size()) - 1; i >= 0; --i) {
+        auto ifStmt = std::make_unique<IfStmt>(
+            std::move(clauses[i].first),
+            std::move(clauses[i].second),
+            std::move(currentElse)
+        );
+
+        std::vector<std::unique_ptr<ASTNode>> wrapper;
+        wrapper.push_back(std::move(ifStmt));
+        currentElse = std::make_unique<Block>(std::move(wrapper));
+    }
+
+    return std::move(currentElse->statements[0]);
+}
+
+std::unique_ptr<ASTNode> Parser::parseBreakStatement() {
+    consume(TokenType::SEMICOLON, "Expected ';' after 'break'");
+    return std::make_unique<BreakStmt>();
+}
+
+std::unique_ptr<ASTNode> Parser::parseContinueStatement() {
+    consume(TokenType::SEMICOLON, "Expected ';' after 'continue'");
+    return std::make_unique<ContinueStmt>();
 }
 
 std::unique_ptr<ASTNode> Parser::parsePrintStatement() {
@@ -386,15 +446,11 @@ std::unique_ptr<ASTNode> Parser::parseUnary() {
         if (!ident) {
             throw ParseError("Increment/decrement target must be an identifier", op.line, op.column);
         }
-        std::string name = ident->name;
-        std::unique_ptr<ASTNode> one = std::make_unique<NumberLiteral>(1);
-        std::string binaryOp = (op.type == TokenType::INC) ? "+" : "-";
-        std::unique_ptr<ASTNode> rhs = std::make_unique<BinaryExpr>(
-            std::make_unique<Identifier>(name),
-            binaryOp,
-            std::move(one)
+        return std::make_unique<IncDecExpr>(
+            ident->name,
+            op.type == TokenType::INC,
+            true
         );
-        return std::make_unique<AssignExpr>(name, std::move(rhs));
     }
 
     return parsePostfix();
@@ -409,15 +465,11 @@ std::unique_ptr<ASTNode> Parser::parsePostfix() {
         if (!ident) {
             throw ParseError("Increment/decrement target must be an identifier", op.line, op.column);
         }
-        std::string name = ident->name;
-        std::unique_ptr<ASTNode> one = std::make_unique<NumberLiteral>(1);
-        std::string binaryOp = (op.type == TokenType::INC) ? "+" : "-";
-        std::unique_ptr<ASTNode> rhs = std::make_unique<BinaryExpr>(
-            std::make_unique<Identifier>(name),
-            binaryOp,
-            std::move(one)
+        return std::make_unique<IncDecExpr>(
+            ident->name,
+            op.type == TokenType::INC,
+            false
         );
-        return std::make_unique<AssignExpr>(name, std::move(rhs));
     }
 
     return expr;

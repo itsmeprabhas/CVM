@@ -4,6 +4,7 @@ std::string opcodeToString(OpCode op) {
     switch (op) {
         case OpCode::PUSH:          return "PUSH";
         case OpCode::POP:           return "POP";
+        case OpCode::DUP:           return "DUP";
         case OpCode::ADD:           return "ADD";
         case OpCode::SUB:           return "SUB";
         case OpCode::MUL:           return "MUL";

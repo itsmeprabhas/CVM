@@ -19,6 +19,10 @@ enum class TokenType {
   ELSE,  // else keyword
   WHILE, // while keyword
   FOR,   // for keyword
+  CASE,  // case keyword
+  WHEN,  // when keyword
+  BREAK, // break keyword
+  CONTINUE, // continue keyword
   AND,   // and keyword
   OR,    // or keyword
   NOT,   // not keyword
