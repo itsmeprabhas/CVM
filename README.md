@@ -99,19 +99,23 @@ clang++ -std=c++17 -Wall -I include src/*.cpp -o cvm++
 ### Run a script
 
 ```bash
-./build/cvm++ script.cvm
+cd tests
+```
+
+```bash
+../build/cvm++ script.cvm
 ```
 
 ### Interactive REPL
 
 ```bash
-./build/cvm++
+../build/cvm++
 ```
 
 ### Debug mode
 
 ```bash
-./build/cvm++ script.cvm --debug
+../build/cvm++ script.cvm --debug
 ```
 
 ---
@@ -209,6 +213,7 @@ CVM++/
     ├── test4.cvm
     ├── test5.cvm
     └── test6.cvm
+    |___ calculator.cvm 
 ```
 
 ---
