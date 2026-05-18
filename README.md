@@ -109,12 +109,13 @@ cd tests
 ### Interactive REPL
 
 ```bash
-../build/cvm++
+./build/cvm++
 ```
 
 ### Debug mode
 
 ```bash
+cd tests
 ../build/cvm++ script.cvm --debug
 ```
 
