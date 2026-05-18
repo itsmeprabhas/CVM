@@ -1,0 +1,65 @@
+// A simple calculator test script in CVM++
+
+let a = 120;
+let b = 10;
+let result = 0;
+let op = 1; // 1: +, 2: -, 3: *, 4: /, 5: %
+
+// Addition
+case {
+    when (op == 1) { result = a + b; }
+    when (op == 2) { result = a - b; }
+    when (op == 3) { result = a * b; }
+    when (op == 4) { result = a / b; }
+    when (op == 5) { result = a % b; }
+    else { result = 0; }
+}
+print result;
+
+// Subtraction
+op = 2;
+case {
+    when (op == 1) { result = a + b; }
+    when (op == 2) { result = a - b; }
+    when (op == 3) { result = a * b; }
+    when (op == 4) { result = a / b; }
+    when (op == 5) { result = a % b; }
+    else { result = 0; }
+}
+print result;
+
+// Multiplication
+op = 3;
+case {
+    when (op == 1) { result = a + b; }
+    when (op == 2) { result = a - b; }
+    when (op == 3) { result = a * b; }
+    when (op == 4) { result = a / b; }
+    when (op == 5) { result = a % b; }
+    else { result = 0; }
+}
+print result;
+
+// Division
+op = 4;
+case {
+    when (op == 1) { result = a + b; }
+    when (op == 2) { result = a - b; }
+    when (op == 3) { result = a * b; }
+    when (op == 4) { result = a / b; }
+    when (op == 5) { result = a % b; }
+    else { result = 0; }
+}
+print result;
+
+// Modulo
+op = 5;
+case {
+    when (op == 1) { result = a + b; }
+    when (op == 2) { result = a - b; }
+    when (op == 3) { result = a * b; }
+    when (op == 4) { result = a / b; }
+    when (op == 5) { result = a % b; }
+    else { result = 0; }
+}
+print result;
